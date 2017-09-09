@@ -1,5 +1,6 @@
 package com.github.anivanovic.carapp.rest;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -10,10 +11,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.anivanovic.carapp.entity.Car;
 import com.github.anivanovic.carapp.entity.CarModel;
 import com.github.anivanovic.carapp.entity.CarOwner;
@@ -46,15 +48,16 @@ public class WebController {
 	}
 
 	@RequestMapping(value = "/carowner/create", method = RequestMethod.POST)
-	public ResponseEntity<String> createCarOwner(@RequestBody CarOwner carOwner)
-			throws URISyntaxException {
+	public ResponseEntity<String> createCarOwner(@RequestBody CarOwner carOwner) throws URISyntaxException {
 		carOwnerRepository.save(carOwner);
 		return ResponseEntity.created(new URI("/carapp/carowner/" + carOwner.getId())).build();
 	}
 
 	@RequestMapping(value = "/carowner/addCar", method = RequestMethod.POST)
-	public ResponseEntity<String> addCarToOwner(@RequestParam Long carId,
-			@RequestParam Long carOwnerId) {
+	public ResponseEntity<String> addCarToOwner(@RequestBody String json) throws IOException {
+		ObjectNode node = new ObjectMapper().readValue(json, ObjectNode.class);
+		long carId = node.get("carId").asLong();
+		long carOwnerId = node.get("carOwnerId").asLong();
 		Car car = carRepository.findOne(carId);
 		CarOwner owner = new CarOwner();
 		owner.setId(carOwnerId);
