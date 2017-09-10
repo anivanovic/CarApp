@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.anivanovic.carapp.entity.Car;
@@ -28,49 +29,89 @@ public class WebController {
 
 	private static final String SUCCESS_MESSAGE = "Successfuly created resource.";
 
-	@Autowired
 	private CarOwnerRepository carOwnerRepository;
-	@Autowired
 	private CarModelRepository carModelRepository;
-	@Autowired
 	private CarRepository carRepository;
+
+	public CarOwnerRepository getCarOwnerRepository() {
+		return carOwnerRepository;
+	}
+
+	@Autowired
+	public void setCarOwnerRepository(CarOwnerRepository carOwnerRepository) {
+		this.carOwnerRepository = carOwnerRepository;
+	}
+
+	public CarModelRepository getCarModelRepository() {
+		return carModelRepository;
+	}
+
+	@Autowired
+	public void setCarModelRepository(CarModelRepository carModelRepository) {
+		this.carModelRepository = carModelRepository;
+	}
+
+	public CarRepository getCarRepository() {
+		return carRepository;
+	}
+
+	@Autowired
+	public void setCarRepository(CarRepository carRepository) {
+		this.carRepository = carRepository;
+	}
 
 	@RequestMapping(value = "/carmodel/create", method = RequestMethod.POST)
 	public ResponseEntity<String> createCarModel(@RequestBody CarModel carModel) {
-		carModelRepository.save(carModel);
+		getCarModelRepository().save(carModel);
 		return ResponseEntity.ok(SUCCESS_MESSAGE);
 	}
 
 	@RequestMapping(value = "/car/create", method = RequestMethod.POST)
 	public ResponseEntity<String> createCar(@RequestBody Car car) {
-		carRepository.save(car);
+		getCarRepository().save(car);
 		return ResponseEntity.ok(SUCCESS_MESSAGE);
 	}
 
 	@RequestMapping(value = "/carowner/create", method = RequestMethod.POST)
-	public ResponseEntity<String> createCarOwner(@RequestBody CarOwner carOwner) throws URISyntaxException {
-		carOwnerRepository.save(carOwner);
+	public ResponseEntity<String> createCarOwner(@RequestBody CarOwner carOwner)
+			throws URISyntaxException {
+		getCarOwnerRepository().save(carOwner);
 		return ResponseEntity.created(new URI("/carapp/carowner/" + carOwner.getId())).build();
 	}
 
 	@RequestMapping(value = "/carowner/addCar", method = RequestMethod.POST)
 	public ResponseEntity<String> addCarToOwner(@RequestBody String json) throws IOException {
 		ObjectNode node = new ObjectMapper().readValue(json, ObjectNode.class);
-		long carId = node.get("carId").asLong();
-		long carOwnerId = node.get("carOwnerId").asLong();
-		Car car = carRepository.findOne(carId);
+		JsonNode carNode = node.get("carId");
+		JsonNode carOwnerNode = node.get("carOwnerId");
+		if (carNode == null || carOwnerNode == null) {
+			return ResponseEntity.status(400).body("CarId or carOwnerId parameter not found");
+		}
+
+		long carId = carNode.asLong(-1);
+		long carOwnerId = carOwnerNode.asLong(-1);
+		Car car = getCarRepository().findOne(carId);
+		if (car == null) {
+			return ResponseEntity.status(404).body("Car not found");
+		}
+
+		boolean ownerExists = getCarOwnerRepository().exists(carOwnerId);
+		if (!ownerExists) {
+			return ResponseEntity.status(404).body("Car owner not found");
+		}
+
 		CarOwner owner = new CarOwner();
 		owner.setId(carOwnerId);
 		car.setCarOwner(owner);
-		carRepository.save(car);
+		getCarRepository().save(car);
 		return ResponseEntity.ok(SUCCESS_MESSAGE);
 	}
 
 	@RequestMapping(value = "/carowner/{id}", method = RequestMethod.GET)
 	@ResponseBody
 	public ResponseEntity<CarOwner> getCarOwner(@PathVariable Long id) {
-		if (carOwnerRepository.exists(id)) {
-			CarOwner owner = carOwnerRepository.getOne(id);
+		if (getCarOwnerRepository().exists(id)) {
+			CarOwner owner = getCarOwnerRepository().getOne(id);
 			return ResponseEntity.ok(owner);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
