@@ -10,6 +10,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonFormat.Shape;
+
 @Entity
 public class CarOwner {
 
@@ -19,6 +22,7 @@ public class CarOwner {
 
 	private String firstName;
 	private String lastName;
+	@JsonFormat(pattern = "dd.mm.yyyy", shape = Shape.STRING)
 	private Date birthday;
 	@OneToMany(mappedBy = "carOwner", cascade = CascadeType.PERSIST)
 	private Collection<Car> carsOwned;
