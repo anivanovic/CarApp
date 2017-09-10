@@ -67,6 +67,6 @@ body:
 ```
 {
 	"carId": 30,
-	"carOwnerId": 20
+	"carOwnerId": 10
 }
 ```
